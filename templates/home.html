@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Post</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .post-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .post-title {
+            font-size: 24px;
+            margin: 0;
+        }
+        .post-body {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .like-button, .comment-button, .update-button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .like-button {
+            background-color: #5cb85c;
+            color: white;
+        }
+        .comment-button {
+            background-color: #0275d8;
+            color: white;
+        }
+        .update-button {
+            background-color: #f0ad4e;
+            color: white;
+        }
+        .comment-section {
+            margin-top: 20px;
+        }
+        .comment-form {
+            display: flex;
+            flex-direction: column;
+        }
+        .comment-form textarea {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .comment-form button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #5cb85c;
+            color: white;
+            cursor: pointer;
+        }
+        .comments {
+            margin-top: 10px;
+        }
+        .comment {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="createpost-link">
+        <h5>Welcome {{request.user.username}}</h5>
+        <a href="{% url 'createpost' %}">Create Post</a>
+        <a href="{% url 'users_listing' %}">Users</a>
+    </div>
+    <div class="post-container">
+        {% for post in posts %}
+        <div class="post-header">
+            {% if post.title %}
+            <h2 class="post-title">title: {{ post.title }}</h2>
+            <h5 class="post-title">created by: {{ post.created_by.username }}</h5>
+            {% endif %}
+            
+            <button class="update-button" ><a href="{% url 'updatepost' post.id %}">Update</a></button>
+            <button class="delete-button" ><a href="{% url 'deletepost' post.id %}">Delete</a></button>
+        </div>
+        {% if post.image %}
+            <img src="{{post.image.url}}" width="650px" height="350px" alt="/">
+            {% endif %}
+        {% comment %} <div class="post-body">
+            <p>{{ post.im }}</p>
+        </div> {% endcomment %}
+        <div class="row">
+            <h5 id="like_{{post.id}}">{{ post.total_likes }} like</h5>
+            <h5 id="comment_{{post.id}}">{{ post.total_comments }} comment</h5>
+        </div>
+        <div class="post-footer">
+            
+            <button class="like-button" id ="{{post.id}}" onclick="likePost(this.id)">{% if post.liked %} UnLike {% else %} Like {% endif %}</button>
+            <button class="comment-button" onclick="document.getElementById('comment-form-{{ post.id }}').style.display='block'">Comment</button>
+        </div>
+        <div class="comment-section">
+            <form id="comment-form-{{ post.id }}" class="comment-form" style="display:none;" action="" method="post">
+                {% csrf_token %}
+                <textarea name="comment" id='c_txt_{{post.id}}' rows="3" placeholder="Write a comment..." required></textarea>
+                <button type="button" id='{{post.id}}' onclick="CommentPost(this.id)">Post Comment</button>
+            </form>
+            {% comment %} <div class="comments">
+                {% for comment in post.comments %}
+                <div class="comment">
+                    <p><strong>by>> {{ comment.comment_by}}  :</strong> {{ comment.c_text }}</p><button class="comment-button" onclick="document.getElementById('commentt-form-{{ post.id }}_{{comment.id}}').style.display='block'">Comment</button>
+                    <form id="commentt-form-{{ post.id }}_{{comment.id}}" class="comment-form" style="display:none;" action="" method="post">
+                        {% csrf_token %}
+                        <textarea name="comment" id='c_txt_{{post.id}}_{{comment.id}}' rows="3" placeholder="Write a comment..." required></textarea>
+                        <button type="button" id="{{comment.id}}" onclick="ReCommentPost(this.id)">Post Comment</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div> {% endcomment %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function likePost(id){
+            console.log(">>..",id);
+            
+            $.ajax({
+                url: `/blog/likes/`,
+                type: 'POST',
+                data: {
+                    p_id:id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                },
+                success: function(response) {
+                    $('#like_'+id).html(response.total_likes +'like');
+                    $('#'+id).html(response.change_txt)
+                }
+            });
+
+        };
+        function ReCommentPost(id){
+            console.log(">>..",id);
+            var cIdValue = $('#' + id).attr('c-id');
+            console.log(">>>>>",cIdValue);
+            $.ajax({
+                url: `/blog/commentpost/`,
+                type: 'POST',
+                data: {
+                    c_id:id,
+                    c_text:$('#c_txt_'+id).val(),
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                },
+                success: function(response) {
+                    $('#comment_'+id).html(response.total_comments +'comment');
+                    $('#c_txt_'+id).val('');
+                   
+                }
+            });
+
+        };
+        function CommentPost(id){
+            console.log(">>..",id);
+            var cIdValue = $('#' + id).attr('c-id');
+            console.log(">>>>>",cIdValue);
+            $.ajax({
+                url: `/blog/commentpost/`,
+                type: 'POST',
+                data: {
+                    p_id:id,
+                    c_text:$('#c_txt_'+id).val(),
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                },
+                success: function(response) {
+                    $('#comment_'+id).html(response.total_comments +'comment');
+                    $('#c_txt_'+id).val('');
+                   
+                }
+            });
+
+        };
+    </script>
+</body>
+</html>
