@@ -18,6 +18,7 @@ def Home(request):
     #followings list followed by user
     followings = UserFollowingRequest.objects.filter(Q(requested_by=user) & Q(accepted=True)).values_list('requested_to', flat=True)
 
+    #posts created by user and by user followed by current user
     posts = Blog.objects.filter(Q(created_by=user) | Q(created_by_id__in=followings))
 
     for i in posts:
@@ -33,7 +34,6 @@ def CreatePost(request):
         title = request.POST.get('title')
         image = request.FILES.get('image')
         if title or image:
-            print("dfghfduglsdfkl;sdkfljfdkgsdjdlfkgjsdl;gksd",image)
             post= Blog.objects.create(title=title,created_by_id=request.user.id)
             if image :
                 print(image)
@@ -113,13 +113,15 @@ def CommentPost(request):
             return JsonResponse({'error': 'Post ID and comment text are required.'}, status=400)
         try:
             c = Comment.objects.create(post_id=p_id, comment_by_id=user.id, c_text=c_text)
-            print(c)
+            
+            #for recomment
             if c_id !='':
                 comment=Comment.objects.filter(id=c_id).first()
                 if c_id:
                     print("here")
                     c.recomment = comment
             c.save()
+
             comments = Comment.objects.filter(post_id=p_id).count()
             # recomments = list(Comment.objects.filter(post_id=p_id,recomment_id=c_id).values())
             

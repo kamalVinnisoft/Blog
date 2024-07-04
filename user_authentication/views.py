@@ -64,6 +64,8 @@ def SignIn(request):
 @login_required(login_url="/signin")
 def users_listing(request):
     users =  CustomUser.objects.exclude(id=request.user.id)
+
+    #follow requests to request.user
     user_requests = UserFollowingRequest.objects.filter(requested_to_id=request.user.id,accepted=False)
     
     #users requested by request.user
@@ -74,12 +76,14 @@ def users_listing(request):
     frnds = UserFollowingRequest.objects.filter(Q(requested_by_id=request.user.id)& Q(accepted=True)).values_list('requested_to', flat=True)
     frnds = CustomUser.objects.filter(id__in=frnds)
     
+    #to create follow request
     if 'req_id' in request.POST:
         id=request.POST.get('req_id')
         req,created = UserFollowingRequest.objects.get_or_create(requested_by_id=request.user.id,requested_to_id=id)
         if created:
             req.save()
 
+    #to accept follow request
     if 'accept_id' in request.POST:
         print(request.POST)
         id=request.POST.get('accept_id')
@@ -87,5 +91,6 @@ def users_listing(request):
         if req:
             req.accepted =True
             req.save()
+            
     return render(request,"user_listings.html",{'users':users,'user_requests':user_requests,'requested':requested,'frnds':frnds})
 
